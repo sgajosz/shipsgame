@@ -102,8 +102,8 @@ def game(playerOneConnection, playerTwoConnection):
             playerTwoConnection[0].sendall("END_OF_GAME\r\n".encode())
             return
         if "PLACED_SHIPS " in reply and len(reply) == 125:
-            print(reply)
-            playerOneShips  = reply.split(" ")[1].split(".")
+            print(playerOneConnection[1][0] + ' ' + reply)
+            playerOneShips = reply.split(" ")[1].split(".")
             playerOnePlacedShips = True
         else:
             if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], "ERROR_PLACE_YOUR_SHIPS\r\n"):
@@ -119,7 +119,7 @@ def game(playerOneConnection, playerTwoConnection):
             playerOneConnection.sendall("END_OF_GAME\r\n".encode())
             return
         if "PLACED_SHIPS " in reply and len(reply) == 125:
-            print(reply)
+            print(playerTwoConnection[1][0] + ' ' + reply)
             playerTwoShips = reply.split(" ")[1].split(".")
             playerTwoPlacedShips = True
         else:
@@ -162,7 +162,7 @@ def game(playerOneConnection, playerTwoConnection):
                 return
 
         print(reply)
-        info = playerOneConnection[1][0] + " has shot into the field " + shot + " of player " + playerTwoConnection[1][0] + "\n"
+        info = playerOneConnection[1][0] + " has shot into the field " + shot + " of player " + playerTwoConnection[1][0]
         print(info)
         logFile.write(info)
 
@@ -184,10 +184,14 @@ def game(playerOneConnection, playerTwoConnection):
         if playerTwoShipsCount == 10:
             message1 += " WIN"
             message2 += " DEFEAT"
-            info = playerOneConnection[1][0] + " has won the game against of player " + playerTwoConnection[1][0] + "\n"
+            info = playerOneConnection[1][0] + " has won the game against player " + playerTwoConnection[1][0] + "\n"
             print(info)
             logFile.write(info)
             end = True
+        else:
+            info = message1 + "\n"
+            print(info)
+            logFile.write(info)
 
         if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], message1+"\r\n"):
             logFile.write(playerOneConnection[1][0] + "has left the game\n")
@@ -231,7 +235,7 @@ def game(playerOneConnection, playerTwoConnection):
                 return
 
         print(reply)
-        info = playerTwoConnection[1][0] + " has shot into the field " + shot + " of player " + playerOneConnection[1][0] + "\n"
+        info = playerTwoConnection[1][0] + " has shot into the field " + shot + " of player " + playerOneConnection[1][0]
         logFile.write(info)
         print(info)
 
@@ -257,6 +261,10 @@ def game(playerOneConnection, playerTwoConnection):
             print(info)
             logFile.write(info)
             end = True
+        else:
+            info = message1 + "\n"
+            print(info)
+            logFile.write(info)
 
         if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], message1+"\r\n"):
             logFile.write(playerTwoConnection[1][0] + "has left the game\n")
@@ -320,4 +328,3 @@ while True:
     gamesInProgress.append(newGame)
     newGame.start()
     logFile.close()
-    break

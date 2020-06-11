@@ -277,6 +277,9 @@ def game(sockIPv4):
     print(reply)
 
     reply = recvall(sockIPv4)
+    if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
+        print("Second player left game!")
+        return
     if reply == "PLACE_YOUR_SHIPS\r\n":
         ships = placeShips()
 
@@ -296,6 +299,9 @@ def game(sockIPv4):
 
     while True:
         reply = recvall(sockIPv4)
+        if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
+            print("Second player left game!")
+            return
 
         if reply == "YOUR_TURN\r\n":
             print("It's your turn to shoot.")
@@ -303,10 +309,15 @@ def game(sockIPv4):
             while not correctField:
                 print("Second player's ships")
                 printCurrentBoard(enemysShips)
-                print("Choose field(ex: A1)", end="")
+                print("Choose field(ex: A1): ", end="")
                 shot = input()
-                row = ord(shot[0].upper()) - 65
-                column = int(shot[1])
+                try:
+                    row = ord(shot[0].upper()) - 65
+                    column = int(shot[1])
+                except Exception as e:
+                    print("Incorrect input!")
+                    continue
+
                 if row >= 0 and row <= 9 and column >= 0 and column <= 9 and len(shot) == 2:
                     correctField = True
                 else:
@@ -354,12 +365,12 @@ def game(sockIPv4):
             elif reply == "GAME_ENDED\r\n":
                 print("Second player left game.")
                 return
-            elif reply == "SYNATX_ERROR\n\r":
+            elif reply == "SYNATX_ERROR\r\n":
                 print(reply)
                 # return
             elif reply.startswith("HIT_AND_SANK "):
-                print("Second player shot into field " + reply[15:17] + " and sank your ship.")
-                shot = reply[15:17]
+                print("Second player shot into field " + reply[13:15] + " and sank your ship.")
+                shot = reply[13:15]
                 mark = "X"
             elif reply.startswith("MISHIT "):
                 print("Second player shot into " + reply[7:9])
