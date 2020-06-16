@@ -270,122 +270,128 @@ def placeShips():
 
 
 def game(sockIPv4):
-    reply = recvall(sockIPv4)
-    if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
-        print("Second player left game!")
-        return
-    print(reply)
-
-    reply = recvall(sockIPv4)
-    if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
-        print("Second player left game!")
-        return
-    if reply == "PLACE_YOUR_SHIPS\r\n":
-        ships = placeShips()
-
-    message = "PLACED_SHIPS "
-    for row in ships:
-        for column in row:
-            message += str(column)
-        message += "."
-    message += "\r\n"
-    sockIPv4.send(message.encode())
-    print("Waiting for the second player...")
-
-    enemysShips = [[], [], [], [], [], [], [], [], [], []]
-    for i in range(0, 10):
-        for j in range(0, 10):
-            enemysShips[i].append(0)
-
-    while True:
+    try:
         reply = recvall(sockIPv4)
         if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
             print("Second player left game!")
             return
+        print(reply)
 
-        if reply == "YOUR_TURN\r\n":
-            print("It's your turn to shoot.")
-            correctField = False
-            while not correctField:
-                print("Second player's ships")
-                printCurrentBoard(enemysShips)
-                print("Choose field(ex: A1): ", end="")
-                shot = input()
-                try:
-                    row = ord(shot[0].upper()) - 65
-                    column = int(shot[1])
-                except Exception as e:
-                    print("Incorrect input!")
-                    continue
+        reply = recvall(sockIPv4)
+        if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
+            print("Second player left game!")
+            return
+        if reply == "PLACE_YOUR_SHIPS\r\n":
+            ships = placeShips()
 
-                if row >= 0 and row <= 9 and column >= 0 and column <= 9 and len(shot) == 2:
-                    correctField = True
-                else:
-                    print("Incorrect input!")
-                    continue
-                if enemysShips[row][column] == "X" or enemysShips[row][column] == "*":
-                    print("You have already shot into this field.")
-                    correctField = False
-            message = "SHOOT " + shot + "\r\n"
-            sockIPv4.sendall(message.encode())
+        message = "PLACED_SHIPS "
+        for row in ships:
+            for column in row:
+                message += str(column)
+            message += "."
+        message += "\r\n"
+        sockIPv4.send(message.encode())
+        print("Waiting for the second player...")
 
+        enemysShips = [[], [], [], [], [], [], [], [], [], []]
+        for i in range(0, 10):
+            for j in range(0, 10):
+                enemysShips[i].append(0)
+
+        while True:
             reply = recvall(sockIPv4)
-            mark = ""
             if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
                 print("Second player left game!")
                 return
-            elif reply == "HIT\r\n":
-                print("You hit part of the opponent's ship.")
-                mark = "X"
-            elif reply == "HIT_AND_SANK\r\n":
-                print("You sank opponent's ship.")
-                mark = "X"
-            elif reply == "MISHIT\r\n":
-                print("You missed opponent's ship.")
-                mark = "*"
-            elif "WIN" in reply:
-                print("You win!")
-                printCurrentBoard(enemysShips)
-                break
-            enemysShips[row][column] = mark
-            print("Second player's ships")
-            printCurrentBoard(enemysShips)
-            print("Second player's turn.")
-        elif reply == "SECOND_PLAYER_TURN\r\n":
-            print("Waiting for second player's hit...")
-            reply = recvall(sockIPv4)
-            mark = ""
-            if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
-                print("Second player left game!")
-                return
-            elif "DEFEAT" in reply:
-                print("You lost!")
-                printCurrentBoard(ships)
-                break
-            elif reply == "GAME_ENDED\r\n":
+            elif reply == "END_OF_GAME\r\n":
                 print("Second player left game.")
                 return
-            elif reply == "SYNATX_ERROR\r\n":
-                print(reply)
-                # return
-            elif reply.startswith("HIT_AND_SANK "):
-                print("Second player shot into field " + reply[13:15] + " and sank your ship.")
-                shot = reply[13:15]
-                mark = "X"
-            elif reply.startswith("MISHIT "):
-                print("Second player shot into " + reply[7:9])
-                shot = reply[7:9]
-                mark = "*"
-            elif reply.startswith("HIT "):
-                print("Second player hit your ship in field " + reply[4:6])
-                shot = reply[4:6]
-                mark = "X"
-            row = ord(shot[0].upper()) - 65
-            column = int(shot[1])
-            ships[row][column] = mark
-            print("Your ships")
-            printCurrentBoard(ships)
 
+            if reply == "YOUR_TURN\r\n":
+                print("It's your turn to shoot.")
+                correctField = False
+                while not correctField:
+                    print("Second player's ships")
+                    printCurrentBoard(enemysShips)
+                    print("Choose field(ex: A1): ", end="")
+                    shot = input()
+                    try:
+                        row = ord(shot[0].upper()) - 65
+                        column = int(shot[1])
+                    except Exception as e:
+                        print("Incorrect input!")
+                        continue
+
+                    if row >= 0 and row <= 9 and column >= 0 and column <= 9 and len(shot) == 2:
+                        correctField = True
+                    else:
+                        print("Incorrect input!")
+                        continue
+                    if enemysShips[row][column] == "X" or enemysShips[row][column] == "*":
+                        print("You have already shot into this field.")
+                        correctField = False
+                message = "SHOOT " + shot + "\r\n"
+                sockIPv4.sendall(message.encode())
+
+                reply = recvall(sockIPv4)
+                mark = ""
+                if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
+                    print("Second player left game!")
+                    return
+                elif reply == "HIT\r\n":
+                    print("You hit part of the opponent's ship.")
+                    mark = "X"
+                elif reply == "HIT_AND_SANK\r\n":
+                    print("You sank opponent's ship.")
+                    mark = "X"
+                elif reply == "MISHIT\r\n":
+                    print("You missed opponent's ship.")
+                    mark = "*"
+                elif "WIN" in reply:
+                    print("You win!")
+                    printCurrentBoard(enemysShips)
+                    break
+                enemysShips[row][column] = mark
+                print("Second player's ships")
+                printCurrentBoard(enemysShips)
+                print("Second player's turn.")
+            elif reply == "SECOND_PLAYER_TURN\r\n":
+                print("Waiting for second player's hit...")
+                reply = recvall(sockIPv4)
+                mark = ""
+                if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
+                    print("Second player left game!")
+                    return
+                elif "DEFEAT" in reply:
+                    print("You lost!")
+                    printCurrentBoard(ships)
+                    break
+                elif reply == "END_OF_GAME\r\n":
+                    print("Second player left game.")
+                    return
+                elif reply == "SYNATX_ERROR\r\n":
+                    print(reply)
+                    # return
+                elif reply.startswith("HIT_AND_SANK "):
+                    print("Second player shot into field " + reply[13:15] + " and sank your ship.")
+                    shot = reply[13:15]
+                    mark = "X"
+                elif reply.startswith("MISHIT "):
+                    print("Second player shot into " + reply[7:9])
+                    shot = reply[7:9]
+                    mark = "*"
+                elif reply.startswith("HIT "):
+                    print("Second player hit your ship in field " + reply[4:6])
+                    shot = reply[4:6]
+                    mark = "X"
+                row = ord(shot[0].upper()) - 65
+                column = int(shot[1])
+                ships[row][column] = mark
+                print("Your ships")
+                printCurrentBoard(ships)
+    except (KeyboardInterrupt, SystemExit):
+        print("\nYou ended the game")
+        sockIPv4.sendall("KEYBOARD_INTERRUPT\r\n".encode())
 
 sockIPv4 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 

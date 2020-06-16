@@ -105,6 +105,11 @@ def game(playerOneConnection, playerTwoConnection):
             print(playerOneConnection[1][0] + ' ' + reply)
             playerOneShips = reply.split(" ")[1].split(".")
             playerOnePlacedShips = True
+        elif reply == "KEYBOARD_INTERRUPT\r\n":
+            logFile.write(playerOneConnection[1][0] + " has left the game\n")
+            logFile.close()
+            playerTwoConnection[0].sendall("END_OF_GAME\r\n".encode())
+            return
         else:
             if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], "ERROR_PLACE_YOUR_SHIPS\r\n"):
                 logFile.write(playerOneConnection[1][0] + "has left the game\n")
@@ -122,6 +127,11 @@ def game(playerOneConnection, playerTwoConnection):
             print(playerTwoConnection[1][0] + ' ' + reply)
             playerTwoShips = reply.split(" ")[1].split(".")
             playerTwoPlacedShips = True
+        elif reply == "KEYBOARD_INTERRUPT\r\n":
+            logFile.write(playerTwoConnection[1][0] + " has left the game\n")
+            logFile.close()
+            playerOneConnection[0].sendall("END_OF_GAME\r\n".encode())
+            return
         else:
             if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], "ERROR_PLACE_YOUR_SHIPS\r\n"):
                 logFile.write(playerTwoConnection[1][0] + "has left the game\n")
@@ -134,11 +144,11 @@ def game(playerOneConnection, playerTwoConnection):
 
     while True:
         if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], "YOUR_TURN\r\n"):
-            logFile.write(playerOneConnection[1][0] + "has left the game")
+            logFile.write(playerOneConnection[1][0] + "has left the game\n")
             logFile.close()
             return
         if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], "SECOND_PLAYER_TURN\r\n"):
-            logFile.write(playerTwoConnection[1][0] + "has left the game")
+            logFile.write(playerTwoConnection[1][0] + "has left the game\n")
             logFile.close()
             return
 
@@ -156,6 +166,11 @@ def game(playerOneConnection, playerTwoConnection):
                 column = int(shot[1])
                 if row >= 0 and row <= 9 and column >= 0 and column <= 9:
                     break
+            elif reply == "KEYBOARD_INTERRUPT\r\n":
+                logFile.write(playerOneConnection[1][0] + " has left the game\n")
+                logFile.close()
+                playerTwoConnection[0].sendall("END_OF_GAME\r\n".encode())
+                return
             if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], "SYNTAX_ERROR\r\n"):
                 logFile.write(playerOneConnection[1][0] + "has left the game\n")
                 logFile.close()
@@ -229,6 +244,11 @@ def game(playerOneConnection, playerTwoConnection):
                 column = int(shot[1])
                 if row >= 0 and row <= 9 and column >= 0 and column <= 9:
                     break
+            elif reply == "KEYBOARD_INTERRUPT\r\n":
+                logFile.write(playerTwoConnection[1][0] + " has left the game\n")
+                logFile.close()
+                playerOneConnection[0].sendall("END_OF_GAME\r\n".encode())
+                return
             if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], "SYNTAX_ERROR\r\n"):
                 logFile.write(playerTwoConnection[1][0] + "has left the game\n")
                 logFile.close()
