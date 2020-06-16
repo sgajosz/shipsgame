@@ -273,13 +273,13 @@ def game(sockIPv4):
     try:
         reply = recvall(sockIPv4)
         if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
-            print("Second player left game!")
+            print("Second player left game! You win!")
             return
         print(reply)
 
         reply = recvall(sockIPv4)
         if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
-            print("Second player left game!")
+            print("Second player left game! You win!")
             return
         if reply == "PLACE_YOUR_SHIPS\r\n":
             ships = placeShips()
@@ -301,10 +301,7 @@ def game(sockIPv4):
         while True:
             reply = recvall(sockIPv4)
             if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
-                print("Second player left game!")
-                return
-            elif reply == "END_OF_GAME\r\n":
-                print("Second player left game.")
+                print("Second player left game! You win!")
                 return
 
             if reply == "YOUR_TURN\r\n":
@@ -336,7 +333,7 @@ def game(sockIPv4):
                 reply = recvall(sockIPv4)
                 mark = ""
                 if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
-                    print("Second player left game!")
+                    print("Second player left game! You win!")
                     return
                 elif reply == "HIT\r\n":
                     print("You hit part of the opponent's ship.")
@@ -360,18 +357,12 @@ def game(sockIPv4):
                 reply = recvall(sockIPv4)
                 mark = ""
                 if reply == "SECOND_PLAYER_LEFT_GAME\r\n":
-                    print("Second player left game!")
+                    print("Second player left game! You win!")
                     return
                 elif "DEFEAT" in reply:
                     print("You lost!")
                     printCurrentBoard(ships)
                     break
-                elif reply == "END_OF_GAME\r\n":
-                    print("Second player left game.")
-                    return
-                elif reply == "SYNATX_ERROR\r\n":
-                    print(reply)
-                    # return
                 elif reply.startswith("HIT_AND_SANK "):
                     print("Second player shot into field " + reply[13:15] + " and sank your ship.")
                     shot = reply[13:15]
@@ -390,8 +381,8 @@ def game(sockIPv4):
                 print("Your ships")
                 printCurrentBoard(ships)
     except (KeyboardInterrupt, SystemExit):
-        print("\nYou ended the game")
         sockIPv4.sendall("KEYBOARD_INTERRUPT\r\n".encode())
+        print("\nYou ended the game")
 
 sockIPv4 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -412,6 +403,7 @@ try:
                 print("You've found a game!")
                 gameFound = True
         elif reply == "RECONNECT\r\n":
+            sockIPv4.close()
             sockIPv4 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sockIPv4.connect(("127.0.0.1", 1234))
 
@@ -419,7 +411,7 @@ try:
         game(sockIPv4)
 
 
-except Exception as e:
+except socket.error as e:
     print("Connection failed %s" % e)
 finally:
     sockIPv4.close()

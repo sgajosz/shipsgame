@@ -11,9 +11,18 @@ def sendToPlayer(player1, player2, command):
     try:
         player1.sendall(command.encode())
         return True
-    except Exception as e:
+    except socket.error as e:
         player2.sendall("SECOND_PLAYER_LEFT_GAME\r\n".encode())
         return False
+
+def playerLeft(playerOneConnection, playerTwoConnection, logFile):
+    logFile.write(playerOneConnection[1][0] + " has left the game\n")
+    info = "Game between " + playerOneConnection[1][0] + " and " + playerTwoConnection[1][0] + " has ended\n"
+    logFile.write(info)
+    print(info)
+    logFile.close()
+    playerOneConnection[0].close()
+    playerTwoConnection[0].close()
 
 def checkIfShipSank(ships, row, column):
     sank = True
@@ -74,21 +83,17 @@ def game(playerOneConnection, playerTwoConnection):
     logFile.write(info)
 
     if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], "Game started!\r\n"):
-        logFile.write(playerOneConnection[1][0] + "has left the game\n")
-        logFile.close()
+        playerLeft(playerOneConnection, playerTwoConnection, logFile)
         return
     if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], "Game started!\r\n"):
-        logFile.write(playerTwoConnection[1][0] + "has left the game\n")
-        logFile.close()
+        playerLeft(playerTwoConnection, playerOneConnection, logFile)
         return
 
     if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], "PLACE_YOUR_SHIPS\r\n"):
-        logFile.write(playerOneConnection[1][0] + "has left the game\n")
-        logFile.close()
+        playerLeft(playerOneConnection, playerTwoConnection, logFile)
         return
     if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], "PLACE_YOUR_SHIPS\r\n"):
-        logFile.write(playerTwoConnection[1][0] + "has left the game\n")
-        logFile.close()
+        playerLeft(playerTwoConnection, playerOneConnection, logFile)
         return
 
     playerOnePlacedShips = False
@@ -96,47 +101,39 @@ def game(playerOneConnection, playerTwoConnection):
     while not playerOnePlacedShips or not playerTwoPlacedShips:
         try:
             reply = recvall(playerOneConnection[0])
-        except Exception as e:
-            logFile.write(playerOneConnection[1][0] + "has left the game\n")
-            logFile.close()
-            playerTwoConnection[0].sendall("END_OF_GAME\r\n".encode())
-            return
-        if "PLACED_SHIPS " in reply and len(reply) == 125:
+            if reply == "KEYBOARD_INTERRUTP\r\n":
+                    raise Exception
             print(playerOneConnection[1][0] + ' ' + reply)
             playerOneShips = reply.split(" ")[1].split(".")
             playerOnePlacedShips = True
-        elif reply == "KEYBOARD_INTERRUPT\r\n":
-            logFile.write(playerOneConnection[1][0] + " has left the game\n")
+        except Exception as e:
+            info = playerOneConnection[1][0] + " has left the game\n"
+            print(info)
+            logFile.write(info)
+            playerTwoConnection[0].sendall("SECOND_PLAYER_LEFT_GAME\r\n".encode())
+            info = "Game between " + playerOneConnection[1][0] + " and " + playerTwoConnection[1][0] + " has ended\n"
+            logFile.write(info)
+            print(info)
             logFile.close()
-            playerTwoConnection[0].sendall("END_OF_GAME\r\n".encode())
             return
-        else:
-            if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], "ERROR_PLACE_YOUR_SHIPS\r\n"):
-                logFile.write(playerOneConnection[1][0] + "has left the game\n")
-                logFile.close()
-                return
+            
+        
 
         try:
             reply = recvall(playerTwoConnection[0])
-        except Exception as e:
-            logFile.write(playerTwoConnection[1][0] + "has left the game\n")
-            logFile.close()
-            playerOneConnection.sendall("END_OF_GAME\r\n".encode())
-            return
-        if "PLACED_SHIPS " in reply and len(reply) == 125:
+            if reply == "KEYBOARD_INTERRUTP\r\n":
+                    raise Exception
             print(playerTwoConnection[1][0] + ' ' + reply)
             playerTwoShips = reply.split(" ")[1].split(".")
             playerTwoPlacedShips = True
-        elif reply == "KEYBOARD_INTERRUPT\r\n":
+        except Exception as e:
             logFile.write(playerTwoConnection[1][0] + " has left the game\n")
+            playerOneConnection[0].sendall("SECOND_PLAYER_LEFT_GAME\r\n".encode())
+            info = "Game between " + playerOneConnection[1][0] + " and " + playerTwoConnection[1][0] + " has ended\n"
+            logFile.write(info)
+            print(info)
             logFile.close()
-            playerOneConnection[0].sendall("END_OF_GAME\r\n".encode())
             return
-        else:
-            if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], "ERROR_PLACE_YOUR_SHIPS\r\n"):
-                logFile.write(playerTwoConnection[1][0] + "has left the game\n")
-                logFile.close()
-                return
 
     playerOneShipsCount = 0
     playerTwoShipsCount = 0
@@ -144,37 +141,31 @@ def game(playerOneConnection, playerTwoConnection):
 
     while True:
         if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], "YOUR_TURN\r\n"):
-            logFile.write(playerOneConnection[1][0] + "has left the game\n")
-            logFile.close()
+            playerLeft(playerOneConnection, playerTwoConnection, logFile)
             return
         if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], "SECOND_PLAYER_TURN\r\n"):
-            logFile.write(playerTwoConnection[1][0] + "has left the game\n")
-            logFile.close()
+            playerLeft(playerTwoConnection, playerOneConnection, logFile)
             return
 
         while True:
             try:
                 reply = recvall(playerOneConnection[0])
-            except Exception as e:
-                logFile.write(playerOneConnection[1][0] + "has left the game\n")
-                logFile.close()
-                playerTwoConnection[0].sendall("END_OF_GAME\r\n".encode())
-                return
-            if reply.startswith("SHOOT ") and len(reply) == 10:
+                if reply == "KEYBOARD_INTERRUTP\r\n":
+                    raise Exception
                 shot = reply[6:8]
                 row = ord(shot[0].upper()) - 65
                 column = int(shot[1])
-                if row >= 0 and row <= 9 and column >= 0 and column <= 9:
-                    break
-            elif reply == "KEYBOARD_INTERRUPT\r\n":
-                logFile.write(playerOneConnection[1][0] + " has left the game\n")
+                break
+            except Exception as e:
+                info = playerOneConnection[1][0] + " has left the game\n" + playerTwoConnection[1][0] + " has won"
+                logFile.write(info)
+                playerTwoConnection[0].sendall("SECOND_PLAYER_LEFT_GAME\r\n".encode())
+                info = "Game between " + playerOneConnection[1][0] + " and " + playerTwoConnection[1][0] + " has ended\n"
+                logFile.write(info)
+                print(info)
                 logFile.close()
-                playerTwoConnection[0].sendall("END_OF_GAME\r\n".encode())
                 return
-            if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], "SYNTAX_ERROR\r\n"):
-                logFile.write(playerOneConnection[1][0] + "has left the game\n")
-                logFile.close()
-                return
+                           
 
         print(reply)
         info = playerOneConnection[1][0] + " has shot into the field " + shot + " of player " + playerTwoConnection[1][0]
@@ -209,50 +200,44 @@ def game(playerOneConnection, playerTwoConnection):
             logFile.write(info)
 
         if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], message1+"\r\n"):
-            logFile.write(playerOneConnection[1][0] + "has left the game\n")
-            logFile.close()
+            playerLeft(playerOneConnection, playerTwoConnection, logFile)
             return
         if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], message2+"\r\n"):
-            logFile.write(playerTwoConnection[1][0] + "has left the game\n")
-            logFile.close()
+            playerLeft(playerTwoConnection, playerOneConnection, logFile)
             return
 
         if end:
             break
 
         if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], "YOUR_TURN\r\n"):
-            logFile.write(playerTwoConnection[1][0] + "has left the game\n")
-            logFile.close()
+            playerLeft(playerTwoConnection, playerOneConnection, logFile)
             return
 
         if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], "SECOND_PLAYER_TURN\r\n"):
-            logFile.write(playerOneConnection[1][0] + "has left the game\n")
-            logFile.close()
+            playerLeft(playerOneConnection, playerTwoConnection, logFile)
             return
 
         while True:
             try:
                 reply = recvall(playerTwoConnection[0])
-            except Exception as e:
-                logFile.write(playerTwoConnection[1][0] + "has left the game\n")
-                logFile.close()
-                playerOneConnection[0].sendall("END_OF_GAME\r\n".encode())
-                return
-            if reply.startswith("SHOOT ") and len(reply) == 10:
+                if reply == "KEYBOARD_INTERRUTP\r\n":
+                    raise Exception
                 shot = reply[6:8]
                 row = ord(shot[0].upper()) - 65
                 column = int(shot[1])
-                if row >= 0 and row <= 9 and column >= 0 and column <= 9:
-                    break
-            elif reply == "KEYBOARD_INTERRUPT\r\n":
-                logFile.write(playerTwoConnection[1][0] + " has left the game\n")
+                break
+            except Exception as e:
+                info = playerTwoConnection[1][0] + " has left the game\n" + playerOneConnection[1][0] + " has won"
+                logFile.write(info)
+                playerOneConnection[0].sendall("SECOND_PLAYER_LEFT_GAME\r\n".encode())
+                info = "Game between " + playerOneConnection[1][0] + " and " + playerTwoConnection[1][0] + " has ended\n"
+                logFile.write(info)
+                print(info)
                 logFile.close()
-                playerOneConnection[0].sendall("END_OF_GAME\r\n".encode())
+                playerOneConnection[0].close()
+                playerTwoConnection[0].close()
                 return
-            if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], "SYNTAX_ERROR\r\n"):
-                logFile.write(playerTwoConnection[1][0] + "has left the game\n")
-                logFile.close()
-                return
+            
 
         print(reply)
         info = playerTwoConnection[1][0] + " has shot into the field " + shot + " of player " + playerOneConnection[1][0]
@@ -287,12 +272,10 @@ def game(playerOneConnection, playerTwoConnection):
             logFile.write(info)
 
         if not sendToPlayer(playerTwoConnection[0], playerOneConnection[0], message1+"\r\n"):
-            logFile.write(playerTwoConnection[1][0] + "has left the game\n")
-            logFile.close()
+            playerLeft(playerTwoConnection, playerOneConnection, logFile)
             return
         if not sendToPlayer(playerOneConnection[0], playerTwoConnection[0], message2+"\r\n"):
-            logFile.write(playerOneConnection[1][0] + "has left the game\n")
-            logFile.close()
+            playerLeft(playerOneConnection, playerTwoConnection, logFile)
             return
 
         if end:
@@ -333,7 +316,7 @@ while True:
     try:
         playerOneConnection[0].sendall("PLAYER_FOUND\r\n".encode())
     except socket.error as e:
-        playerTwoConnection[0].sendall("RECONNECT\r\n".encode())
+        playerTwoConnection[0].sendall("SECOND_PLAYER_LEFT_GAME\r\n".encode())
         info = playerOneConnection[1][0] + " has left the game\n"
         logFile.write(info)
         logFile.close()
